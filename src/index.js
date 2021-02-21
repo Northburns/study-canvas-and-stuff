@@ -11,7 +11,9 @@ function component() {
         resolution: window.devicePixelRatio || 1,
     });
 
-    const texture = PIXI.Texture.from('imgs/parrot.png');
+    const texture = PIXI.Texture.from('creatorpack/bg_right.jpg');
+    
+
 
     const camera = new PIXI.projection.Camera3d();
     camera.setPlanes(300, 10, 1000, false);
@@ -37,6 +39,8 @@ function component() {
 
     // FOOO
     const f = new PIXI.projection.Sprite3d(texture);
+    f.tint = 0x121212;
+    f.alpha = 0.2;
     groundLayer.addChild(f);
 
 
