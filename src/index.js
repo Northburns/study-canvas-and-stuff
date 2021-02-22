@@ -1,77 +1,121 @@
-import _ from 'lodash';
-import * as PIXI from 'pixi.js';
-global.PIXI = PIXI;
-require("pixi-projection");
+import { initial } from 'lodash';
+import * as THREE from 'three';
+import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TextureNode, SpriteNodeMaterial } from 'three/examples/jsm/nodes/Nodes';
 
-function component() {
-    const app = new PIXI.Application({
-        width: 800,
-        height: 600,
-        backgroundColor: 0x1099bb,
-        resolution: window.devicePixelRatio || 1,
-    });
+let camera, controls, scene, renderer;
 
-    const texture = PIXI.Texture.from('creatorpack/bg_right.jpg');
-    
+init();
+//render(); // remove when using next line for animation loop (requestAnimationFrame)
+animate();
+
+function init() {
+
+    const textureLoader = new THREE.TextureLoader();
+    const t1 = textureLoader.load( "imgs/parrot.png" );
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0xcccccc );
+    scene.fog = new THREE.FogExp2( 0xcccccc, 0.002 );
+
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+
+    camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+    camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, 1, 1000 );
+    camera.position.set( 400, 200, 0 );
+
+    // controls
+
+    controls = new MapControls( camera, renderer.domElement );
+
+    //controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
+
+    controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+    controls.dampingFactor = 0.05;
+
+    controls.screenSpacePanning = false;
+
+    controls.minDistance = 100;
+    controls.maxDistance = 500;
+
+    controls.maxPolarAngle = Math.PI / 2;
+
+    // world
+
+    const geometry = new THREE.BoxGeometry( 1, 1, 1 );
+    geometry.translate( 0, 0.5, 0 );
+    const material = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } );
+
+    for ( let i = 0; i < 500; i ++ ) {
+
+        const mesh = new THREE.Mesh( geometry, material );
+        mesh.position.x = Math.random() * 1600 - 800;
+        mesh.position.y = 0;
+        mesh.position.z = Math.random() * 1600 - 800;
+        mesh.scale.x = 20;
+        mesh.scale.y = Math.random() * 80 + 10;
+        mesh.scale.z = 20;
+        mesh.updateMatrix();
+        mesh.matrixAutoUpdate = false;
+        scene.add( mesh );
+
+    }
+
+    // SPRITES
+    let sprite1 = new THREE.Sprite( new SpriteNodeMaterial() )
+    scene.add(sprite1);
+    sprite1.scale.x = 200;
+    sprite1.scale.y = 200;
+    sprite1.material.color = new TextureNode( t1 );
+    sprite1.material.color.uv = createHorizontalSpriteSheetNode( 8, 10 );
+
+    // lights
+
+    const dirLight1 = new THREE.DirectionalLight( 0xffffff );
+    dirLight1.position.set( 1, 1, 1 );
+    scene.add( dirLight1 );
+
+    const dirLight2 = new THREE.DirectionalLight( 0x002288 );
+    dirLight2.position.set( - 1, - 1, - 1 );
+    scene.add( dirLight2 );
+
+    const ambientLight = new THREE.AmbientLight( 0x222222 );
+    scene.add( ambientLight );
+
+    //
+
+    window.addEventListener( 'resize', onWindowResize );
 
 
-    const camera = new PIXI.projection.Camera3d();
-    camera.setPlanes(300, 10, 1000, false);
-    camera.position.set(app.screen.width / 2, 0);
-    camera.position3d.y = -500; // camera is above the ground
-    app.stage.addChild(camera);
+    //const gui = new GUI();
+    //gui.add( controls, 'screenSpacePanning' );
 
-    const groundLayer = new PIXI.projection.Container3d();
-    groundLayer.euler.x = Math.PI / 2;
-    camera.addChild(groundLayer);
-
-    // Those two layers can have 2d objects inside
-    // because they return everything to affine space
-
-    const bgLayer = new PIXI.projection.Container3d();
-    bgLayer.proj.affine = PIXI.projection.AFFINE.AXIS_X;
-    camera.addChild(bgLayer);
-    bgLayer.position3d.z = 80;
-
-    const mainLayer = new PIXI.projection.Container3d();
-    mainLayer.proj.affine = PIXI.projection.AFFINE.AXIS_X;
-    camera.addChild(mainLayer);
-
-    // FOOO
-    const f = new PIXI.projection.Sprite3d(texture);
-    f.tint = 0x121212;
-    f.alpha = 0.2;
-    groundLayer.addChild(f);
-
-
-    // const texture = PIXI.Texture.from('imgs/parrot.png');
-    // const container = new PIXI.Container();
-    // app.stage.addChild(container);
-
-    // for (let i = 0; i < 25; i++) {
-    //     const bunny = new PIXI.Sprite(texture);
-    //     bunny.anchor.set(0.5);
-    //     bunny.x = (i % 5) * 40;
-    //     bunny.y = Math.floor(i / 5) * 40;
-    //     container.addChild(bunny);
-    // }
-
-    // container.x = app.screen.width / 2;
-    // container.y = app.screen.height / 2;
-
-    // // Center bunny sprite in local container coordinates
-    // container.pivot.x = container.width / 2;
-    // container.pivot.y = container.height / 2;
-
-    // // Listen for animate update
-    // app.ticker.add((delta) => {
-    //     // rotate the container!
-    //     // use delta to create frame-independent transform
-    //     container.rotation -= 0.01 * delta;
-    // });
-
-    
-    return app.view;
 }
 
-document.body.appendChild(component());
+function onWindowResize() {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+}
+
+function animate() {
+
+    requestAnimationFrame( animate );
+
+    controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+
+    render();
+
+}
+
+function render() {
+
+    renderer.render( scene, camera );
+
+}
